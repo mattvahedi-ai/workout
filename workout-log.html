@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Workout" />
+  <meta name="theme-color" content="#f4f1ec" />
+  <meta name="format-detection" content="telephone=no" />
+
+  <title>Vahedi Workout Log</title>
+
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230a0a0a'/%3E%3Ctext x='90' y='118' text-anchor='middle' font-family='Courier' font-size='72' font-weight='900' fill='%23ffffff'%3EVB%3C/text%3E%3Cline x1='40' y1='138' x2='140' y2='138' stroke='%23d63b1f' stroke-width='4'/%3E%3C/svg%3E" />
+
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #f4f1ec; }
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      color: #1a1a1a;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior-y: contain;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    button { font-family: inherit; cursor: pointer; }
+    input { font-family: inherit; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; -webkit-appearance: none; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #f4f1ec; }
+    ::-webkit-scrollbar-thumb { background: #c8c0b0; border-radius: 2px; }
+
+    /* App-wide */
+    .app { background: #f4f1ec; min-height: 100vh; padding-bottom: 60px; }
+
+    /* Header */
+    .header { padding: 24px 20px 16px; padding-top: calc(24px + env(safe-area-inset-top)); border-bottom: 1px solid #d9d3c8; position: sticky; top: 0; background: #f4f1ec; z-index: 100; }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .brand { font-size: 10px; letter-spacing: 4px; color: #888; margin-bottom: 2px; }
+    .title { font-size: 22px; font-weight: 900; letter-spacing: 2px; color: #111; }
+    .save-tag { font-size: 9px; letter-spacing: 1.5px; font-weight: 700; margin-top: 4px; color: #999; transition: color 0.3s; white-space: nowrap; }
+    .header-btns { display: flex; gap: 6px; flex-shrink: 0; }
+    .header-btn { background: #111; color: #fff; border: none; border-radius: 2px; padding: 8px 12px; font-size: 10px; font-weight: 900; letter-spacing: 2px; white-space: nowrap; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 6px; margin-top: 16px; overflow-x: auto; padding-bottom: 2px; }
+    .tab { border: 1px solid #d9d3c8; border-radius: 2px; padding: 6px 12px; font-size: 10px; font-weight: 900; letter-spacing: 2px; white-space: nowrap; background: transparent; color: #999; transition: all 0.15s; }
+    .tab.active { color: #fff; }
+
+    /* Day header / Legend */
+    .day-section { padding: 20px 20px 0; }
+    .day-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .day-tag { font-size: 9px; letter-spacing: 3px; padding: 3px 8px; border-radius: 2px; border: 1px solid; }
+    .day-label { font-size: 20px; font-weight: 900; letter-spacing: 3px; color: #111; }
+    .day-set-count { font-size: 10px; color: #888; }
+    .legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; font-size: 8px; letter-spacing: 1px; }
+    .legend-chip { padding: 3px 6px; border-radius: 2px; font-weight: 800; border: 1px solid; }
+
+    /* Exercises */
+    .ex-list { padding: 0 20px 60px; display: flex; flex-direction: column; gap: 14px; }
+    .card { background: #fff; border: 1px solid #d9d3c8; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 0 rgba(0,0,0,0.02); }
+    .ex-header { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #ece7de; gap: 8px; background: #faf7f2; }
+    .ex-num { font-size: 10px; font-weight: 700; color: #aaa; min-width: 20px; }
+    .ex-name { flex: 1; font-size: 12px; font-weight: 700; letter-spacing: 1px; color: #222; text-transform: uppercase; }
+    .ex-name-input { flex: 1; background: #fff; border: 1px solid; color: #111; font-size: 12px; font-weight: 700; letter-spacing: 1px; padding: 4px 8px; border-radius: 2px; outline: none; }
+    .balance-badge { padding: 3px 7px; border-radius: 2px; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; white-space: nowrap; display: flex; align-items: center; gap: 5px; border: 1px solid; }
+    .balance-badge .pct { opacity: 0.65; font-size: 8px; }
+    .icon-btn { background: transparent; border: none; color: #bbb; font-size: 14px; padding: 0 4px; line-height: 1; }
+    .target-banner { display: flex; align-items: center; padding: 8px 14px; font-size: 10px; letter-spacing: 0.5px; border-bottom: 1px solid; }
+    .target-banner .label { font-weight: 700; opacity: 0.8; }
+    .target-banner .val { font-weight: 900; margin-left: 6px; font-size: 12px; }
+    .target-banner .hint { margin-left: auto; font-size: 8px; opacity: 0.75; font-weight: 700; }
+
+    /* Sets table */
+    .col-headers { display: grid; grid-template-columns: 32px 1fr 1fr 32px; gap: 6px; padding: 8px 14px 6px; align-items: center; background: #fbf9f5; border-bottom: 1px solid #ece7de; }
+    .col-headers .h1 { font-size: 8px; color: #888; letter-spacing: 2px; font-weight: 700; }
+    .col-headers .h { font-size: 9px; color: #444; letter-spacing: 2px; text-align: center; font-weight: 800; }
+    .set-row { display: grid; grid-template-columns: 32px 1fr 1fr 32px; gap: 6px; padding: 6px 14px; align-items: center; }
+    .set-row.bordered { border-bottom: 1px solid #f4efe6; }
+    .set-num { font-size: 10px; font-weight: 800; }
+    .num-input { background: #faf7f2; border: 1px solid #e0d9cc; border-radius: 2px; color: #111; font-size: 14px; font-weight: 700; padding: 7px 8px; text-align: center; outline: none; width: 100%; transition: all 0.15s; }
+    .num-input:focus { background: #fff; }
+    .remove-set-btn { background: transparent; border: none; color: #ccc; font-size: 18px; padding: 0; line-height: 1; text-align: center; }
+    .add-set-wrap { padding: 10px 14px 12px; }
+    .add-set-btn { background: transparent; border: 1px dashed #c8c0b0; border-radius: 2px; color: #888; font-size: 9px; letter-spacing: 2px; padding: 6px 0; width: 100%; font-weight: 700; transition: all 0.15s; }
+    .add-ex-btn { background: transparent; border: 1px dashed #c8c0b0; border-radius: 4px; color: #888; font-size: 10px; letter-spacing: 3px; padding: 16px; width: 100%; font-weight: 700; transition: all 0.15s; }
+
+    /* New exercise form */
+    .new-ex-card { background: #fff; border: 1px solid; border-radius: 4px; padding: 14px; }
+    .new-ex-label { font-size: 9px; letter-spacing: 3px; margin-bottom: 10px; font-weight: 800; }
+    .new-ex-input { background: #faf7f2; border: 1px solid; border-radius: 2px; color: #111; font-size: 13px; font-weight: 700; letter-spacing: 1px; padding: 9px 12px; width: 100%; outline: none; margin-bottom: 10px; text-transform: uppercase; }
+    .new-ex-buttons { display: flex; gap: 8px; }
+    .primary-btn { flex: 1; border: none; border-radius: 2px; color: #fff; font-size: 10px; font-weight: 900; letter-spacing: 2px; padding: 9px; }
+    .secondary-btn { flex: 1; background: transparent; border: 1px solid #d9d3c8; border-radius: 2px; color: #888; font-size: 10px; font-weight: 700; letter-spacing: 2px; padding: 9px; }
+
+    /* Modal */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .modal { background: #f4f1ec; border-radius: 4px; width: 100%; max-width: 460px; max-height: 90vh; display: flex; flex-direction: column; border: 1px solid #d9d3c8; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 18px 12px; border-bottom: 1px solid #d9d3c8; }
+    .modal-close { background: transparent; border: none; font-size: 22px; color: #888; line-height: 1; padding: 0; width: 28px; height: 28px; }
+    .modal-body { padding: 16px; overflow: auto; flex: 1; }
+    .modal-help { font-size: 11px; color: #555; line-height: 1.5; margin: 0 0 12px 0; }
+    .copy-btn { width: 100%; padding: 14px; font-size: 12px; margin-bottom: 12px; }
+    .export-textarea { width: 100%; min-height: 180px; max-height: 40vh; background: #fff; border: 1px solid #d9d3c8; border-radius: 2px; font-family: 'Courier New', monospace; font-size: 10px; padding: 10px; color: #333; resize: vertical; outline: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    'use strict';
+
+    // =========================================================================
+    // CONFIG
+    // =========================================================================
+    var STORAGE_KEY = 'vahedi-workout-v1';
+    var SAVE_DEBOUNCE_MS = 200;
+
+    var DAY_COLORS = {
+      push:  '#d63b1f',
+      pull:  '#1f6fd6',
+      legs:  '#c2531c',
+      upper: '#7c3aed',
+      core:  '#0e9f6e',
+    };
+
+    var PROFILES = {
+      'barbell bench press':          { ratio: 1.00, primary: true },
+      'incline bench press':          { ratio: 0.85, primary: true },
+      'incline dumbbell press':       { ratio: 0.32, perArm: true },
+      'seated dumbbell shoulder':     { ratio: 0.20, perArm: true },
+      'machine shoulder press':       { ratio: 0.55 },
+      'dumbbell chest fly':           { ratio: 0.18, perArm: true },
+      'lateral raises':               { ratio: 0.08, perArm: true },
+      'tricep pushdown':              { ratio: 0.45 },
+      'overhead rope extension':      { ratio: 0.30 },
+      'lat pulldown':                 { ratio: 0.85, primary: true },
+      'iso lateral row':              { ratio: 0.40, perArm: true },
+      'iso lateral high row':         { ratio: 0.45, perArm: true },
+      'chest supported dumbbell row': { ratio: 0.40, perArm: true },
+      'single-arm cable row':         { ratio: 0.40, perArm: true },
+      'face pulls':                   { ratio: 0.25 },
+      'barbell curl':                 { ratio: 0.35 },
+      'hammer curl':                  { ratio: 0.18, perArm: true },
+      'preacher curl':                { ratio: 0.35 },
+      'squats':                       { ratio: 1.35, primary: true },
+      'romanian deadlift':            { ratio: 1.35, primary: true },
+      'hip thrust':                   { ratio: 1.50 },
+      'seated hamstring curl':        { ratio: 0.50 },
+      'standing calf raise':          { ratio: 0.80 },
+    };
+
+    var BALANCE_STYLES = {
+      leader:   { bg: '#fff4e0', color: '#b56b00', border: '#f0c98a' },
+      balanced: { bg: '#e6f5ec', color: '#0e7c47', border: '#9ed4b3' },
+      focus:    { bg: '#ffe8cc', color: '#cc6600', border: '#ffb366' },
+      weak:     { bg: '#fde8e2', color: '#a83617', border: '#f2b8a4' },
+    };
+
+    var INITIAL_DATA = {
+      days: [
+        { id: 'push', label: 'PUSH', tag: 'DAY 1', exercises: [
+          { id: 'p1', name: 'Barbell Bench Press',       sets: [{w:115,r:12},{w:135,r:10},{w:155,r:8},{w:175,r:6}] },
+          { id: 'p2', name: 'Incline Dumbbell Press',    sets: [{w:40,r:12},{w:40,r:12},{w:40,r:12}] },
+          { id: 'p3', name: 'Seated Dumbbell Shoulder',  sets: [{w:30,r:12},{w:30,r:12},{w:30,r:12}] },
+          { id: 'p4', name: 'Dumbbell Chest Fly',        sets: [{w:30,r:12},{w:30,r:12},{w:30,r:12}] },
+          { id: 'p5', name: 'Lateral Raises',            sets: [{w:15,r:8},{w:15,r:8},{w:15,r:8}] },
+          { id: 'p6', name: 'Tricep Pushdown',           sets: [{w:30,r:12},{w:30,r:12},{w:30,r:12}] },
+          { id: 'p7', name: 'Overhead Rope Extension',   sets: [{w:20,r:10},{w:20,r:10}] },
+        ]},
+        { id: 'pull', label: 'PULL', tag: 'DAY 2', exercises: [
+          { id: 'u1', name: 'Lat Pulldown',                  sets: [{w:100,r:12},{w:105,r:10},{w:110,r:8},{w:115,r:6}] },
+          { id: 'u2', name: 'Iso Lateral Row',               sets: [{w:70,r:12},{w:70,r:10},{w:70,r:11}] },
+          { id: 'u3', name: 'Iso Lateral High Row',          sets: [{w:80,r:12},{w:80,r:12},{w:80,r:10}] },
+          { id: 'u4', name: 'Chest Supported Dumbbell Row',  sets: [{w:40,r:10},{w:40,r:10},{w:40,r:10}] },
+          { id: 'u5', name: 'Face Pulls',                    sets: [{w:37,r:12},{w:37,r:12},{w:37,r:12}] },
+          { id: 'u6', name: 'Barbell Curl',                  sets: [{w:50,r:8},{w:50,r:8},{w:50,r:8}] },
+          { id: 'u7', name: 'Hammer Curl',                   sets: [{w:25,r:7},{w:25,r:7}] },
+        ]},
+        { id: 'legs', label: 'LEGS', tag: 'DAY 3', exercises: [
+          { id: 'l1', name: 'Squats',                sets: [{w:45,r:12},{w:65,r:10},{w:75,r:8},{w:85,r:6}] },
+          { id: 'l2', name: 'Romanian Deadlift',     sets: [{w:95,r:10},{w:115,r:8},{w:135,r:6}] },
+          { id: 'l3', name: 'Hip Thrust',            sets: [{w:25,r:12},{w:25,r:12},{w:25,r:12}] },
+          { id: 'l4', name: 'Seated Hamstring Curl', sets: [{w:70,r:12},{w:70,r:12},{w:70,r:12}] },
+          { id: 'l5', name: 'Standing Calf Raise',   sets: [{w:110,r:12},{w:110,r:12},{w:110,r:12}] },
+        ]},
+        { id: 'upper', label: 'UPPER', tag: 'DAY 4', exercises: [
+          { id: 'x1', name: 'Incline Bench Press',     sets: [{w:115,r:12},{w:125,r:10},{w:135,r:8}] },
+          { id: 'x2', name: 'Single-Arm Cable Row',    sets: [{w:42,r:12},{w:42,r:8},{w:42,r:8}] },
+          { id: 'x3', name: 'Machine Shoulder Press',  sets: [{w:45,r:8},{w:45,r:8},{w:45,r:8}] },
+          { id: 'x4', name: 'Lateral Raises',          sets: [{w:10,r:15},{w:10,r:8},{w:10,r:8}] },
+          { id: 'x5', name: 'Preacher Curl',           sets: [{w:40,r:12},{w:40,r:12},{w:40,r:6}] },
+          { id: 'x6', name: 'Dips (Bodyweight)',       sets: [{w:0,r:10},{w:0,r:8},{w:0,r:5}] },
+        ]},
+        { id: 'core', label: 'CORE', tag: 'DAY 5', exercises: [
+          { id: 'c1', name: 'Dead Bug',                 sets: [{w:0,r:12},{w:0,r:12},{w:0,r:12}] },
+          { id: 'c2', name: 'Plank',                    sets: [{w:0,r:45},{w:0,r:45},{w:0,r:45}] },
+          { id: 'c3', name: 'Side Plank Reach Through', sets: [{w:0,r:6},{w:0,r:6},{w:0,r:6}] },
+          { id: 'c4', name: 'Med Ball Twist',           sets: [{w:10,r:10},{w:10,r:10},{w:10,r:10}] },
+          { id: 'c5', name: 'Suitcase Carry',           sets: [{w:35,r:40},{w:35,r:40},{w:35,r:40}] },
+        ]},
+      ],
+    };
+
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+        return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+      });
+    }
+    function uid() { return Math.random().toString(36).slice(2, 9); }
+    function e1rm(s) { return (Number(s.w) || 0) * (1 + (Number(s.r) || 0) / 30); }
+    function topE1RM(ex) { return ex.sets && ex.sets.length ? Math.max.apply(null, ex.sets.map(e1rm)) : 0; }
+
+    function getProfile(name) {
+      if (!name) return null;
+      var k = name.trim().toLowerCase();
+      if (PROFILES[k]) return PROFILES[k];
+      var keys = Object.keys(PROFILES);
+      for (var i = 0; i < keys.length; i++) {
+        if (k.indexOf(keys[i]) !== -1 || keys[i].indexOf(k) !== -1) return PROFILES[keys[i]];
+      }
+      return null;
+    }
+
+    function impliedBench(ex) {
+      var p = getProfile(ex.name);
+      if (!p) return null;
+      var e = topE1RM(ex);
+      if (e <= 0) return null;
+      return e / p.ratio;
+    }
+
+    function analyzeBalance(ex, all) {
+      var my = impliedBench(ex);
+      if (my == null) return null;
+      var anchor = 0, i, x, p, ib;
+      for (i = 0; i < all.length; i++) {
+        x = all[i]; p = getProfile(x.name);
+        if (!p || !p.primary) continue;
+        ib = impliedBench(x);
+        if (ib != null && ib > anchor) anchor = ib;
+      }
+      if (anchor === 0) {
+        for (i = 0; i < all.length; i++) {
+          ib = impliedBench(all[i]);
+          if (ib != null && ib > anchor) anchor = ib;
+        }
+      }
+      if (anchor === 0) return null;
+      var pct = Math.round((my / anchor) * 100);
+      if (pct >= 95) return { type: 'leader',   label: '★ LEADER',    pct: pct };
+      if (pct >= 80) return { type: 'balanced', label: '✓ BALANCED',  pct: pct };
+      if (pct >= 60) return { type: 'focus',    label: '↑ FOCUS',     pct: pct };
+      return                { type: 'weak',     label: '⚠ WEAK SPOT', pct: pct };
+    }
+
+    function getNextTarget(ex, balance) {
+      if (!balance) return null;
+      if (balance.type === 'leader' || balance.type === 'balanced') return null;
+      if (!ex.sets || ex.sets.length === 0) return null;
+      var sorted = ex.sets.slice().sort(function(a, b) { return e1rm(b) - e1rm(a); });
+      var top = sorted[0];
+      var w = Number(top.w) || 0, r = Number(top.r) || 0;
+      if (r === 0) return null;
+      if (w === 0) return { weight: 0, reps: r + 2, hint: 'ADD REPS' };
+      if (r >= 12) {
+        var inc = w >= 100 ? 10 : 5;
+        return { weight: w + inc, reps: Math.max(r - 2, 8), hint: 'ADD WEIGHT' };
+      }
+      return { weight: w, reps: r + 1, hint: 'ADD REPS' };
+    }
+
+    function sanitize(data) {
+      return {
+        days: data.days.map(function(d) {
+          return {
+            id: d.id, label: d.label, tag: d.tag,
+            exercises: d.exercises.map(function(ex) {
+              return {
+                id: ex.id,
+                name: String(ex.name || '').trim(),
+                sets: ex.sets.map(function(s) {
+                  return {
+                    w: isFinite(Number(s.w)) ? Number(s.w) : 0,
+                    r: isFinite(Number(s.r)) ? Number(s.r) : 0,
+                  };
+                }),
+              };
+            }),
+          };
+        }),
+      };
+    }
+
+    // =========================================================================
+    // STORAGE
+    // =========================================================================
+    function loadData() {
+      try {
+        var json = localStorage.getItem(STORAGE_KEY);
+        return json ? JSON.parse(json) : null;
+      } catch (e) { return null; }
+    }
+    function saveData(data) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitize(data)));
+        return true;
+      } catch (e) { return false; }
+    }
+
+    // =========================================================================
+    // STATE
+    // =========================================================================
+    var STATE = {
+      data: loadData() || JSON.parse(JSON.stringify(INITIAL_DATA)),
+      activeDay: 'push',
+      editingName: null,
+      adding: false,
+      newExName: '',
+      exportText: null,
+      copyStatus: 'idle',
+      saveStatus: 'idle',
+    };
+
+    // =========================================================================
+    // SAVE
+    // =========================================================================
+    var saveTimer = null, saveStatusTimer = null;
+    function scheduleSave() {
+      STATE.saveStatus = 'saving';
+      updateSaveIndicator();
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function() {
+        var ok = saveData(STATE.data);
+        STATE.saveStatus = ok ? 'saved' : 'error';
+        updateSaveIndicator();
+        clearTimeout(saveStatusTimer);
+        if (ok) {
+          saveStatusTimer = setTimeout(function() {
+            if (STATE.saveStatus === 'saved') {
+              STATE.saveStatus = 'idle';
+              updateSaveIndicator();
+            }
+          }, 1500);
+        }
+      }, SAVE_DEBOUNCE_MS);
+    }
+
+    function updateSaveIndicator() {
+      var el = document.getElementById('save-status');
+      if (!el) return;
+      var labels = { idle: '● SYNCED', saving: '● SAVING', saved: '● SAVED', error: '● ERROR' };
+      var colors = { idle: '#999', saving: '#999', saved: '#0e9f6e', error: '#d63b1f' };
+      el.textContent = labels[STATE.saveStatus];
+      el.style.color = colors[STATE.saveStatus];
+    }
+
+    // =========================================================================
+    // ACTIONS (exposed globally for inline handlers)
+    // =========================================================================
+    window.app = {
+      setActiveDay: function(day) {
+        STATE.activeDay = day;
+        STATE.adding = false;
+        STATE.editingName = null;
+        render();
+      },
+
+      updateSet: function(dayId, exId, idx, field, value) {
+        var ex = STATE.data.days.find(function(d){return d.id===dayId;}).exercises.find(function(x){return x.id===exId;});
+        ex.sets[idx][field] = value === '' ? '' : Number(value);
+        scheduleSave();
+        // No re-render — preserve input focus
+      },
+
+      refreshAfterEdit: function() {
+        // On blur, re-render so balance badges + targets update
+        render();
+      },
+
+      addSet: function(dayId, exId) {
+        var ex = STATE.data.days.find(function(d){return d.id===dayId;}).exercises.find(function(x){return x.id===exId;});
+        var last = ex.sets[ex.sets.length-1] || { w: 0, r: 10 };
+        ex.sets.push({ w: last.w, r: last.r });
+        scheduleSave();
+        render();
+      },
+
+      removeSet: function(dayId, exId, idx) {
+        var ex = STATE.data.days.find(function(d){return d.id===dayId;}).exercises.find(function(x){return x.id===exId;});
+        if (ex.sets.length > 1) ex.sets.splice(idx, 1);
+        scheduleSave();
+        render();
+      },
+
+      removeExercise: function(dayId, exId) {
+        if (!confirm('Remove this exercise?')) return;
+        var day = STATE.data.days.find(function(d){return d.id===dayId;});
+        day.exercises = day.exercises.filter(function(x){return x.id !== exId;});
+        scheduleSave();
+        render();
+      },
+
+      startEditName: function(exId) {
+        STATE.editingName = exId;
+        render();
+      },
+
+      finishEditName: function(dayId, exId, name) {
+        var ex = STATE.data.days.find(function(d){return d.id===dayId;}).exercises.find(function(x){return x.id===exId;});
+        ex.name = name;
+        STATE.editingName = null;
+        scheduleSave();
+        render();
+      },
+
+      cancelEditName: function() {
+        STATE.editingName = null;
+        render();
+      },
+
+      startAdd: function() {
+        STATE.adding = true;
+        STATE.newExName = '';
+        render();
+      },
+
+      cancelAdd: function() {
+        STATE.adding = false;
+        STATE.newExName = '';
+        render();
+      },
+
+      setNewExName: function(value) {
+        STATE.newExName = value;
+        // No re-render
+      },
+
+      submitAdd: function(dayId) {
+        var name = STATE.newExName.trim();
+        if (!name) return;
+        var day = STATE.data.days.find(function(d){return d.id===dayId;});
+        day.exercises.push({ id: uid(), name: name, sets: [{ w: 0, r: 10 }] });
+        STATE.adding = false;
+        STATE.newExName = '';
+        scheduleSave();
+        render();
+      },
+
+      handleKeyOnAdd: function(e, dayId) {
+        if (e.key === 'Enter') { app.submitAdd(dayId); }
+        else if (e.key === 'Escape') { app.cancelAdd(); }
+      },
+
+      handleKeyOnEdit: function(e, dayId, exId) {
+        if (e.key === 'Enter') { e.target.blur(); }
+        else if (e.key === 'Escape') { app.cancelEditName(); }
+      },
+
+      exportData: function() {
+        var json = JSON.stringify(sanitize(STATE.data), null, 2);
+        // Try direct file download — works in real Safari (outside the artifact iframe)
+        try {
+          var blob = new Blob([json], { type: 'application/json' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          var stamp = new Date().toISOString().slice(0, 10);
+          a.href = url;
+          a.download = 'workout-log-' + stamp + '.json';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        } catch (e) {}
+        // Always show the modal too as a copy-fallback
+        STATE.exportText = json;
+        STATE.copyStatus = 'idle';
+        render();
+      },
+
+      closeModal: function() {
+        STATE.exportText = null;
+        render();
+      },
+
+      copyExport: function() {
+        var done = function(success) {
+          STATE.copyStatus = success ? 'copied' : 'failed';
+          render();
+          setTimeout(function() {
+            if (STATE.copyStatus !== 'idle') {
+              STATE.copyStatus = 'idle';
+              render();
+            }
+          }, 2200);
+        };
+        var fallback = function() {
+          var ta = document.getElementById('export-textarea');
+          if (!ta) return done(false);
+          ta.focus(); ta.select();
+          try { done(document.execCommand('copy')); } catch (e) { done(false); }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(STATE.exportText).then(function(){ done(true); }, fallback);
+        } else { fallback(); }
+      },
+
+      triggerImport: function() {
+        document.getElementById('import-input').click();
+      },
+
+      handleImport: function(input) {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            var parsed = JSON.parse(e.target.result);
+            if (!parsed.days || !Array.isArray(parsed.days)) throw new Error('Not a valid workout log');
+            if (confirm('Replace your current data with this backup?')) {
+              STATE.data = parsed;
+              scheduleSave();
+              render();
+            }
+          } catch (err) { alert("Couldn't read file: " + (err && err.message ? err.message : err)); }
+        };
+        reader.readAsText(file);
+        input.value = '';
+      },
+
+      stopProp: function(e) { e.stopPropagation(); },
+    };
+
+    // =========================================================================
+    // RENDER FUNCTIONS
+    // =========================================================================
+    function renderApp() {
+      var currentDay = STATE.data.days.find(function(d){return d.id === STATE.activeDay;});
+      var accent = DAY_COLORS[STATE.activeDay];
+      var allExercises = STATE.data.days.reduce(function(acc, d){return acc.concat(d.exercises);}, []);
+
+      var totalSets = currentDay.exercises.reduce(function(a, e){return a + e.sets.length;}, 0);
+
+      return '<div class="app">' +
+        renderHeader() +
+        '<div class="day-section">' +
+          '<div class="day-header">' +
+            '<div class="day-tag" style="color:' + accent + ';background:' + accent + '15;border-color:' + accent + '55;">' + esc(currentDay.tag) + '</div>' +
+            '<div class="day-label">' + esc(currentDay.label) + '</div>' +
+            '<div style="flex:1"></div>' +
+            '<div class="day-set-count">' + totalSets + ' SETS</div>' +
+          '</div>' +
+          renderLegend() +
+        '</div>' +
+        '<div class="ex-list">' +
+          currentDay.exercises.map(function(ex, i) { return renderExercise(ex, i, accent, allExercises, currentDay.id); }).join('') +
+          renderAddArea(accent, currentDay.id) +
+        '</div>' +
+        (STATE.exportText !== null ? renderModal() : '') +
+      '</div>';
+    }
+
+    function renderHeader() {
+      return '<div class="header">' +
+        '<div class="header-row">' +
+          '<div>' +
+            '<div class="brand">VAHEDI BUILDERS</div>' +
+            '<div class="title">WORKOUT LOG</div>' +
+            '<div id="save-status" class="save-tag">● SYNCED</div>' +
+          '</div>' +
+          '<div class="header-btns">' +
+            '<button class="header-btn" onclick="app.exportData()">EXPORT</button>' +
+            '<button class="header-btn" onclick="app.triggerImport()">IMPORT</button>' +
+            '<input id="import-input" type="file" accept="application/json,.json" onchange="app.handleImport(this)" style="display:none">' +
+          '</div>' +
+        '</div>' +
+        '<div class="tabs">' +
+          STATE.data.days.map(function(d) {
+            var active = d.id === STATE.activeDay;
+            var c = DAY_COLORS[d.id];
+            var style = active
+              ? 'background:' + c + ';color:#fff;border-color:' + c + ';'
+              : '';
+            return '<button class="tab' + (active ? ' active' : '') + '" style="' + style + '" onclick="app.setActiveDay(\'' + d.id + '\')">' + esc(d.label) + '</button>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderLegend() {
+      var keys = ['leader', 'balanced', 'focus', 'weak'];
+      var labels = { leader: '★ LEADER', balanced: '✓ BALANCED 80%+', focus: '↑ FOCUS 60-79%', weak: '⚠ WEAK <60%' };
+      return '<div class="legend">' +
+        keys.map(function(k) {
+          var s = BALANCE_STYLES[k];
+          return '<span class="legend-chip" style="background:' + s.bg + ';color:' + s.color + ';border-color:' + s.border + '">' + labels[k] + '</span>';
+        }).join('') +
+      '</div>';
+    }
+
+    function renderExercise(ex, idx, accent, allExercises, dayId) {
+      var balance = analyzeBalance(ex, allExercises);
+      var bs = balance ? BALANCE_STYLES[balance.type] : null;
+      var target = getNextTarget(ex, balance);
+
+      var nameSection;
+      if (STATE.editingName === ex.id) {
+        nameSection = '<input class="ex-name-input" autofocus value="' + esc(ex.name) + '" ' +
+          'style="border-color:' + accent + '99" ' +
+          'onblur="app.finishEditName(\'' + dayId + '\',\'' + ex.id + '\',this.value)" ' +
+          'onkeydown="app.handleKeyOnEdit(event,\'' + dayId + '\',\'' + ex.id + '\')">';
+      } else {
+        nameSection = '<div class="ex-name" onclick="app.startEditName(\'' + ex.id + '\')">' + esc(ex.name) + '</div>';
+      }
+
+      var balanceSection = '';
+      if (balance) {
+        balanceSection = '<div class="balance-badge" title="At ' + balance.pct + '% of your strongest lift" ' +
+          'style="background:' + bs.bg + ';color:' + bs.color + ';border-color:' + bs.border + '">' +
+          '<span>' + balance.label + '</span><span class="pct">' + balance.pct + '%</span>' +
+          '</div>';
+      }
+
+      var targetSection = '';
+      if (target) {
+        targetSection = '<div class="target-banner" ' +
+          'style="background:' + bs.bg + ';color:' + bs.color + ';border-color:' + bs.border + '">' +
+          '<span class="label">↗ NEXT TARGET:</span>' +
+          '<span class="val">' + (target.weight > 0 ? target.weight + ' LBS × ' + target.reps : target.reps + ' REPS') + '</span>' +
+          '<span class="hint">' + target.hint + '</span>' +
+          '</div>';
+      }
+
+      var setsHtml = ex.sets.map(function(set, si) {
+        var bordered = si === ex.sets.length - 1 ? '' : ' bordered';
+        var isBW = /bodyweight/i.test(ex.name);
+        var weightVal = (set.w === 0 && isBW) ? '' : esc(set.w);
+        var weightPlaceholder = isBW ? 'BW' : '0';
+        return '<div class="set-row' + bordered + '">' +
+          '<div class="set-num" style="color:' + accent + '">' + (si + 1) + '</div>' +
+          '<input class="num-input" type="number" inputmode="decimal" value="' + weightVal + '" placeholder="' + weightPlaceholder + '" ' +
+            'onfocus="this.style.borderColor=\'' + accent + '\';this.style.boxShadow=\'0 0 0 2px ' + accent + '22\'" ' +
+            'onblur="this.style.borderColor=\'#e0d9cc\';this.style.boxShadow=\'none\';app.refreshAfterEdit()" ' +
+            'oninput="app.updateSet(\'' + dayId + '\',\'' + ex.id + '\',' + si + ',\'w\',this.value)">' +
+          '<input class="num-input" type="number" inputmode="numeric" value="' + esc(set.r) + '" ' +
+            'onfocus="this.style.borderColor=\'' + accent + '\';this.style.boxShadow=\'0 0 0 2px ' + accent + '22\'" ' +
+            'onblur="this.style.borderColor=\'#e0d9cc\';this.style.boxShadow=\'none\';app.refreshAfterEdit()" ' +
+            'oninput="app.updateSet(\'' + dayId + '\',\'' + ex.id + '\',' + si + ',\'r\',this.value)">' +
+          '<button class="remove-set-btn" onclick="app.removeSet(\'' + dayId + '\',\'' + ex.id + '\',' + si + ')">−</button>' +
+        '</div>';
+      }).join('');
+
+      return '<div class="card">' +
+        '<div class="ex-header">' +
+          '<div class="ex-num">' + String(idx + 1).padStart(2, '0') + '</div>' +
+          nameSection +
+          balanceSection +
+          '<button class="icon-btn" onclick="app.removeExercise(\'' + dayId + '\',\'' + ex.id + '\')">×</button>' +
+        '</div>' +
+        targetSection +
+        '<div class="col-headers">' +
+          '<div class="h1">SET</div>' +
+          '<div class="h">WEIGHT (LBS)</div>' +
+          '<div class="h">REPS</div>' +
+          '<div></div>' +
+        '</div>' +
+        setsHtml +
+        '<div class="add-set-wrap">' +
+          '<button class="add-set-btn" onclick="app.addSet(\'' + dayId + '\',\'' + ex.id + '\')">+ ADD SET</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderAddArea(accent, dayId) {
+      if (STATE.adding) {
+        return '<div class="new-ex-card" style="border-color:' + accent + '66">' +
+          '<div class="new-ex-label" style="color:' + accent + '">NEW EXERCISE</div>' +
+          '<input class="new-ex-input" autofocus value="' + esc(STATE.newExName) + '" placeholder="Exercise name..." ' +
+            'style="border-color:' + accent + '99" ' +
+            'oninput="app.setNewExName(this.value)" ' +
+            'onkeydown="app.handleKeyOnAdd(event,\'' + dayId + '\')">' +
+          '<div class="new-ex-buttons">' +
+            '<button class="primary-btn" style="background:' + accent + '" onclick="app.submitAdd(\'' + dayId + '\')">ADD</button>' +
+            '<button class="secondary-btn" onclick="app.cancelAdd()">CANCEL</button>' +
+          '</div>' +
+        '</div>';
+      }
+      return '<button class="add-ex-btn" onclick="app.startAdd()">+ ADD EXERCISE</button>';
+    }
+
+    function renderModal() {
+      var copyLabel = STATE.copyStatus === 'copied' ? '✓ COPIED TO CLIPBOARD' :
+                      STATE.copyStatus === 'failed' ? '✕ COPY FAILED — SELECT MANUALLY' :
+                      '📋 COPY BACKUP';
+      var copyBg = STATE.copyStatus === 'copied' ? '#0e9f6e' :
+                   STATE.copyStatus === 'failed' ? '#d63b1f' : '#111';
+
+      return '<div class="overlay" onclick="app.closeModal()">' +
+        '<div class="modal" onclick="app.stopProp(event)">' +
+          '<div class="modal-header">' +
+            '<div>' +
+              '<div style="font-size:9px;letter-spacing:3px;color:#888;margin-bottom:2px">BACKUP</div>' +
+              '<div style="font-size:16px;font-weight:900;letter-spacing:2px;color:#111">EXPORT DATA</div>' +
+            '</div>' +
+            '<button class="modal-close" onclick="app.closeModal()">×</button>' +
+          '</div>' +
+          '<div class="modal-body">' +
+            '<p class="modal-help">A file download was attempted. If it didn\'t appear in your Files app, tap <b>COPY</b> below and paste into Notes or Mail to back up.</p>' +
+            '<button class="primary-btn copy-btn" style="background:' + copyBg + '" onclick="app.copyExport()">' + copyLabel + '</button>' +
+            '<div style="font-size:9px;letter-spacing:1px;color:#888;margin-bottom:6px;font-weight:700">OR LONG-PRESS THE TEXT BELOW → SELECT ALL → COPY</div>' +
+            '<textarea id="export-textarea" class="export-textarea" readonly onfocus="this.select()">' + esc(STATE.exportText) + '</textarea>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    // =========================================================================
+    // RENDER
+    // =========================================================================
+    function render() {
+      document.getElementById('root').innerHTML = renderApp();
+      updateSaveIndicator();
+    }
+
+    // Polyfill for older Safari
+    if (!String.prototype.padStart) {
+      String.prototype.padStart = function(n, c) {
+        var s = this; c = c || ' ';
+        while (s.length < n) s = c + s;
+        return s;
+      };
+    }
+
+    // =========================================================================
+    // INIT
+    // =========================================================================
+    render();
+  </script>
+</body>
+</html>
