@@ -187,46 +187,55 @@
       'Adjust estimated starting weights to your actual strength. Machine weights vary.',
     ];
 
-    // STRENGTH GOALS — realistic working sets to reach in roughly 6–12 months of
-    // consistent training from the plan's starting weights (~1.4–1.7× start),
-    // each at the top of that exercise's rep range. Editable in the app.
-    // { w: weight (for bodyweight moves: added weight, 0 = bodyweight only), r: reps }
+    // STRENGTH GOALS — what a balanced, athletic build should lift, as a multiple of
+    // body weight (bwx), so goals scale with your latest weigh-in. Ratios keep the
+    // body in proportion: rows ≈ incline press, pulldowns/cable rows ≈ 0.9× bench,
+    // squat/RDL ≥ bench, shoulders and arms scaled to chest and back.
+    // Healthy intermediate level, not elite. Weights round to the exercise's jump.
+    //   { bwx: × body weight, r: reps }   — body-weight based (default)
+    //   { w: lb, r: reps }                — fixed goal (bodyweight moves: added lb, 0 = BW only)
     var GOALS = {
-      m1: { w: 50,   r: 10 },  // Incline DB Press (each)        start 35
-      m2: { w: 0,    r: 10 },  // Pull-Ups (bodyweight)          start BW × 6
-      m3: { w: 155,  r: 10 },  // Flat Bench Press               start 105
-      m4: { w: 55,   r: 12 },  // Chest-Supported DB Row (each)  start 40
-      m5: { w: 17.5, r: 15 },  // DB Lateral Raises (each)       start 12.5
-      m6: { w: 30,   r: 12 },  // DB Biceps Curls (each)         start 20
-      t1: { w: 155,  r: 10 },  // Barbell Squats                 start 95
-      t2: { w: 145,  r: 10 },  // Romanian Deadlifts             start 95
-      t3: { w: 30,   r: 10 },  // Walking Lunges (each)          start 15
-      t4: { w: 90,   r: 12 },  // Seated Leg Curls               start 60
-      t6: { w: 0,    r: 15 },  // Hanging Leg Raises (BW)        start BW × 10
-      h1: { w: 40,   r: 10 },  // Seated DB Shoulder Press (each) start 25
-      h2: { w: 130,  r: 12 },  // Lat Pulldowns                  start 90
-      h3: { w: 0,    r: 12 },  // Chest Dips (bodyweight)        start BW × 8
-      h4: { w: 130,  r: 12 },  // Seated Cable Rows              start 90
-      h5: { w: 15,   r: 15 },  // Cable Lateral Raises (per side) start 10
-      h6: { w: 17.5, r: 15 },  // Rear Delt Flyes (each)         start 12.5
-      h7: { w: 30,   r: 12 },  // Hammer Curls (each)            start 20
-      h8: { w: 55,   r: 12 },  // Triceps Pushdowns              start 35
-      s1: { w: 180,  r: 12 },  // Leg Press (added plates)       start 90
-      s2: { w: 30,   r: 10 },  // Bulgarian Split Squats (each)  start 15
-      s3: { w: 185,  r: 12 },  // Barbell Hip Thrusts            start 115
-      s4: { w: 90,   r: 12 },  // Leg Curls                      start 60
-      s5: { w: 90,   r: 15 },  // Seated Calf Raises (added)     start 45
-      s6: { w: 70,   r: 15 },  // Cable Crunches                 start 45
+      m1: { bwx: 0.30, r: 10 },  // Incline DB Press (each)        175 lb → 55s
+      m2: { w: 0,      r: 10 },  // Pull-Ups                        10 bodyweight reps
+      m3: { bwx: 0.85, r: 8  },  // Flat Bench Press                → 150
+      m4: { bwx: 0.30, r: 10 },  // Chest-Supported DB Row (each)   → 55s
+      m5: { bwx: 0.10, r: 12 },  // DB Lateral Raises (each)        → 17.5s
+      m6: { bwx: 0.17, r: 10 },  // DB Biceps Curls (each)          → 30s
+      t1: { bwx: 1.00, r: 8  },  // Barbell Squats                  → 175
+      t2: { bwx: 1.00, r: 10 },  // Romanian Deadlifts              → 175
+      t3: { bwx: 0.17, r: 10 },  // Walking Lunges (each)           → 30s
+      t4: { bwx: 0.55, r: 12 },  // Seated Leg Curls                → 95
+      t6: { w: 0,      r: 15 },  // Hanging Leg Raises              15 reps
+      h1: { bwx: 0.20, r: 10 },  // Seated DB Shoulder Press (each) → 35s
+      h2: { bwx: 0.75, r: 10 },  // Lat Pulldowns                   → 130
+      h3: { w: 0,      r: 12 },  // Chest Dips                      12 bodyweight reps
+      h4: { bwx: 0.75, r: 10 },  // Seated Cable Rows               → 130
+      h5: { bwx: 0.08, r: 12 },  // Cable Lateral Raises (per side) → 15
+      h6: { bwx: 0.10, r: 15 },  // Rear Delt Flyes (each)          → 17.5s
+      h7: { bwx: 0.17, r: 10 },  // Hammer Curls (each)             → 30s
+      h8: { bwx: 0.35, r: 12 },  // Triceps Pushdowns               → 60
+      s1: { bwx: 1.25, r: 12 },  // Leg Press (added plates)        → 220
+      s2: { bwx: 0.17, r: 10 },  // Bulgarian Split Squats (each)   → 30s
+      s3: { bwx: 1.15, r: 10 },  // Barbell Hip Thrusts             → 200
+      s4: { bwx: 0.55, r: 12 },  // Leg Curls                       → 95
+      s5: { bwx: 0.50, r: 15 },  // Seated Calf Raises (added)      → 90
+      s6: { bwx: 0.40, r: 15 },  // Cable Crunches                  → 70
       // t5 Standing Calf Raises: machine-dependent — set your own goal in the app
     };
-    var GOALS_VERSION = 2;
-    // First-version goals, so saved data still on them can be moved to the new ones
+    var GOALS_VERSION = 3;
+    // Earlier default goals, so saved data still on them moves to the new ones
     // (goals you edited yourself are left alone).
-    var GOALS_V1 = { m1:'70x10', m2:'25x8', m3:'205x8', m4:'75x10', m5:'25x15', m6:'40x10',
-      t1:'245x8', t2:'225x10', t3:'50x10', t4:'130x12', t6:'0x15', h1:'60x10', h2:'180x10',
-      h3:'45x10', h4:'180x12', h5:'20x15', h6:'25x15', h7:'45x10', h8:'80x12', s1:'360x12',
-      s2:'50x10', s3:'275x10', s4:'130x12', s5:'135x15', s6:'100x15' };
-    var DEFAULT_BODYWEIGHT = 180;
+    var OLD_DEFAULT_GOALS = [
+      { m1:'70x10', m2:'25x8', m3:'205x8', m4:'75x10', m5:'25x15', m6:'40x10',
+        t1:'245x8', t2:'225x10', t3:'50x10', t4:'130x12', t6:'0x15', h1:'60x10', h2:'180x10',
+        h3:'45x10', h4:'180x12', h5:'20x15', h6:'25x15', h7:'45x10', h8:'80x12', s1:'360x12',
+        s2:'50x10', s3:'275x10', s4:'130x12', s5:'135x15', s6:'100x15' },
+      { m1:'50x10', m2:'0x10', m3:'155x10', m4:'55x12', m5:'17.5x15', m6:'30x12',
+        t1:'155x10', t2:'145x10', t3:'30x10', t4:'90x12', t6:'0x15', h1:'40x10', h2:'130x12',
+        h3:'0x12', h4:'130x12', h5:'15x15', h6:'17.5x15', h7:'30x12', h8:'55x12', s1:'180x12',
+        s2:'30x10', s3:'185x12', s4:'90x12', s5:'90x15', s6:'70x15' },
+    ];
+    var DEFAULT_BODYWEIGHT = 175;
 
     // ex(id, name, repLo, repHi, startWeight, rxText, opts)
     //   opts.c   = compound (2 min rest) — otherwise isolation (90 s)
@@ -236,7 +245,7 @@
       opts = opts || {};
       var sets = [];
       for (var i = 0; i < 3; i++) sets.push({ w: w, r: lo });
-      return { id: id, name: name, lo: lo, hi: hi, rx: rx, c: !!opts.c, inc: opts.inc || 5, bw: !!opts.bw, unit: opts.unit || '', goal: GOALS[id] ? { w: GOALS[id].w, r: GOALS[id].r } : null, sets: sets };
+      return { id: id, name: name, lo: lo, hi: hi, rx: rx, c: !!opts.c, inc: opts.inc || 5, bw: !!opts.bw, unit: opts.unit || '', goal: GOALS[id] ? clone(GOALS[id]) : null, sets: sets };
     }
 
     // Starting treadmill settings for each cardio day (editable in the app)
@@ -368,13 +377,20 @@
       var w = STATE.data.weeks.find(function(x){ return num(x.bodyWeight) > 0; }); // weeks are newest-first
       return w ? num(w.bodyWeight) : DEFAULT_BODYWEIGHT;
     }
+    // Goal weight in lb: body-weight based goals round to the exercise's weight jump
+    function goalWeight(e) {
+      var g = e.goal;
+      if (g.bwx == null) return num(g.w);
+      var inc = e.inc || 5;
+      return Math.round(g.bwx * currentBodyWeight() / inc) * inc;
+    }
     function loadOf(e, w) { return (e.bw ? currentBodyWeight() : 0) + num(w); }
     function goalProgress(e) {
       if (!e.goal) return null;
-      var goalE = e1rm(loadOf(e, e.goal.w), num(e.goal.r));
+      var goalE = e1rm(loadOf(e, goalWeight(e)), num(e.goal.r));
       if (goalE <= 0) return null;
       // Bodyweight-only goals (e.g. 10 pull-ups) are measured by reps: 6 of 10 = 60%.
-      var repsOnly = e.bw && num(e.goal.w) === 0;
+      var repsOnly = e.bw && goalWeight(e) === 0;
       var ratio = Math.max.apply(null, [0].concat(e.sets.map(function(s) {
         if (num(s.r) <= 0) return 0;
         if (repsOnly && num(s.w) === 0) return num(s.r) / num(e.goal.r);
@@ -387,9 +403,9 @@
       return pct >= 100 ? '#0e9f6e' : pct >= 80 ? '#3f9e5a' : pct >= 60 ? '#cc8a00' : '#d63b1f';
     }
     function goalText(e) {
-      var g = e.goal, u = e.unit ? ' ' + e.unit : '';
-      if (e.bw) return (num(g.w) > 0 ? 'BW+' + g.w : 'BW') + ' × ' + g.r;
-      return g.w + ' LB' + u + ' × ' + g.r;
+      var g = e.goal, u = e.unit ? ' ' + e.unit : '', w = goalWeight(e);
+      if (e.bw) return (w > 0 ? 'BW+' + w : 'BW') + ' × ' + g.r;
+      return w + ' LB' + u + ' × ' + g.r;
     }
     function goalBar(pct) {
       return '<div class="goal-bar"><div style="width:' + Math.min(pct, 100) + '%;background:' + goalColor(pct) + '"></div></div>';
@@ -420,7 +436,8 @@
         }
         if (!d.exercises) return;
         d.exercises.forEach(function(e) {
-          var oldDefault = e.goal && GOALS_V1[e.id] === e.goal.w + 'x' + e.goal.r;
+          var key = e.goal && e.goal.bwx == null ? e.goal.w + 'x' + e.goal.r : null;
+          var oldDefault = key && OLD_DEFAULT_GOALS.some(function(o){ return o[e.id] === key; });
           if (e.goal === undefined || ((data.goalsVersion || 1) < GOALS_VERSION && oldDefault)) {
             e.goal = GOALS[e.id] ? clone(GOALS[e.id]) : null;
           }
@@ -605,12 +622,15 @@
 
       editGoal: function(dayId, exId) {
         var e = findEx(dayId, exId);
-        var g = e.goal || { w: '', r: e.hi };
+        var g = e.goal ? { w: goalWeight(e), r: e.goal.r } : { w: '', r: e.hi };
+        var auto = GOALS[e.id] && GOALS[e.id].bwx != null
+          ? '\nType AUTO to use the body-weight goal (' + Math.round(GOALS[e.id].bwx * 100) + '% of body weight).' : '';
         var wMsg = e.bw
           ? 'Goal for ' + e.name + ':\nAdded weight in lb (0 = bodyweight only).\nLeave empty to remove the goal.'
-          : 'Goal for ' + e.name + ':\nWeight in lb' + (e.unit ? ' (' + e.unit.toLowerCase() + ')' : '') + '.\nLeave empty to remove the goal.';
+          : 'Goal for ' + e.name + ':\nWeight in lb' + (e.unit ? ' (' + e.unit.toLowerCase() + ')' : '') + '.\nLeave empty to remove the goal.' + auto;
         var w = prompt(wMsg, g.w);
         if (w === null) return;
+        if (auto && String(w).trim().toLowerCase() === 'auto') { e.goal = clone(GOALS[e.id]); scheduleSave(); render(); return; }
         if (String(w).trim() === '') { e.goal = null; scheduleSave(); render(); return; }
         if (!isFinite(Number(w)) || Number(w) < 0) { alert('Enter a number.'); return; }
         var r = prompt('Goal reps for ' + e.name + ':', g.r);
@@ -1095,7 +1115,7 @@
             '<div class="panel-label">WEEKLY PROGRESS TRACKER</div>' +
             '<div class="field-row">' +
               field('weekOf', 'WEEK OF', 'date') +
-              field('bodyWeight', 'BODY WEIGHT (LB)', 'number', '180') +
+              field('bodyWeight', 'BODY WEIGHT (LB)', 'number', '175') +
             '</div>' +
             field('waist', 'WAIST (IN)', 'number', '32') +
             field('strength', 'STRENGTH IMPROVEMENTS', 'text', 'Bench 105 → 110...') +
