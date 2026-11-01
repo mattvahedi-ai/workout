@@ -108,11 +108,9 @@
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
     /* Cardio / recovery */
-    .block-row { display: grid; grid-template-columns: 70px 1fr; gap: 10px; padding: 10px 14px; align-items: center; border-bottom: 1px solid #f4efe6; }
-    .block-row:last-child { border-bottom: none; }
-    .block-time { font-size: 16px; font-weight: 900; color: #111; }
-    .block-name { font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #222; text-transform: uppercase; }
-    .block-detail { font-size: 10px; color: #777; margin-top: 2px; }
+    .cardio-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 8px 14px 14px; }
+    .cardio-head { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 8px 14px 0; }
+    .cardio-head div { font-size: 9px; color: #444; letter-spacing: 2px; text-align: center; font-weight: 800; }
     .list { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.7; color: #333; }
     .done-chip { display: inline-block; font-size: 9px; letter-spacing: 1.5px; font-weight: 800; padding: 3px 8px; border-radius: 2px; background: #e6f5ec; color: #0e7c47; border: 1px solid #9ed4b3; }
 
@@ -194,11 +192,9 @@
       return { id: id, name: name, lo: lo, hi: hi, rx: rx, c: !!opts.c, inc: opts.inc || 5, bw: !!opts.bw, unit: opts.unit || '', sets: sets };
     }
 
-    var CARDIO_BLOCKS = [
-      { min: 5,  name: 'Warm-up',  detail: '2.5 mph · 0–2% incline' },
-      { min: 20, name: 'Working',  detail: '3.0 mph · 5% incline' },
-      { min: 5,  name: 'Cooldown', detail: '2.5 mph · 0% incline' },
-    ];
+    // Starting treadmill settings for each cardio day (editable in the app)
+    var CARDIO_DEFAULT = { mph: 3.0, incline: 5, min: 20 };
+    function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
     var INITIAL_DATA = {
       plan: PLAN_ID,
@@ -220,7 +216,7 @@
           ex('t5', 'Standing Calf Raises',     12, 15, 0,    '3 × 12–15 @ Machine-dependent',    { inc: 10 }),
           ex('t6', 'Hanging Leg Raises',       10, 15, 0,    '3 × 10–15 @ Bodyweight',           { bw: true }),
         ]},
-        { id: 'wed', tag: 'WED', label: 'CARDIO', focus: 'Treadmill Incline Walking', type: 'cardio' },
+        { id: 'wed', tag: 'WED', label: 'CARDIO', focus: 'Treadmill Incline Walking', type: 'cardio', cardio: clone(CARDIO_DEFAULT) },
         { id: 'thu', tag: 'THU', label: 'UPPER B', focus: 'Shoulders, Back & Arms', type: 'upper', notes: '', exercises: [
           ex('h1', 'Seated DB Shoulder Press', 8, 10,  25,   '3 × 8–10 @ 25 lb each',            { c: true, unit: 'EACH' }),
           ex('h2', 'Lat Pulldowns',            10, 12, 90,   '3 × 10–12 @ 90 lb',                { c: true }),
@@ -240,7 +236,7 @@
           ex('s5', 'Seated Calf Raises',       12, 15, 45,   '3 × 12–15 @ 45 lb added plates',   { inc: 10 }),
           ex('s6', 'Cable Crunches',           12, 15, 45,   '3 × 12–15 @ 45 lb'),
         ]},
-        { id: 'sun', tag: 'SUN', label: 'CARDIO', focus: 'Treadmill Incline Walking', type: 'cardio' },
+        { id: 'sun', tag: 'SUN', label: 'CARDIO', focus: 'Treadmill Incline Walking', type: 'cardio', cardio: clone(CARDIO_DEFAULT) },
       ],
       history: [], // { date, dayId, label, items?: [{ exId, name, sets }] }
       weeks: [],   // weekly progress tracker entries
@@ -255,7 +251,6 @@
       });
     }
     function uid() { return Math.random().toString(36).slice(2, 9); }
-    function clone(o) { return JSON.parse(JSON.stringify(o)); }
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
     function isoDate(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
     function todayISO() { return isoDate(new Date()); }
@@ -318,6 +313,14 @@
       return null;
     }
 
+    function lastCardioFor(dayId) {
+      var h = STATE.data.history;
+      for (var i = h.length - 1; i >= 0; i--) {
+        if (h[i].dayId === dayId && h[i].cardio) return { date: h[i].date, cardio: h[i].cardio };
+      }
+      return null;
+    }
+
     function loggedOn(dayId, iso) {
       return STATE.data.history.some(function(h){ return h.dayId === dayId && h.date === iso; });
     }
@@ -326,6 +329,14 @@
       data.history = Array.isArray(data.history) ? data.history : [];
       data.weeks = Array.isArray(data.weeks) ? data.weeks : [];
       data.days.forEach(function(d) {
+        if (d.type === 'cardio') {
+          var c = d.cardio || clone(CARDIO_DEFAULT);
+          d.cardio = {
+            mph: c.mph === '' ? '' : num(c.mph),
+            incline: c.incline === '' ? '' : num(c.incline),
+            min: c.min === '' ? '' : num(c.min),
+          };
+        }
         if (!d.exercises) return;
         d.exercises.forEach(function(e) {
           e.sets = (e.sets || []).map(function(s) {
@@ -447,6 +458,12 @@
         window.scrollTo(0, 0);
       },
 
+      updateCardio: function(dayId, field, value) {
+        findDay(dayId).cardio[field] = value === '' ? '' : Number(value);
+        scheduleSave();
+        // No re-render — preserve input focus
+      },
+
       updateSet: function(dayId, exId, idx, field, value) {
         findEx(dayId, exId).sets[idx][field] = value === '' ? '' : Number(value);
         scheduleSave();
@@ -536,6 +553,7 @@
             return { exId: e.id, name: e.name, sets: clone(e.sets) };
           });
         }
+        if (day.cardio) entry.cardio = clone(day.cardio);
         var h = STATE.data.history.filter(function(x){ return !(x.dayId === dayId && x.date === date); });
         h.push(entry);
         h.sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
@@ -735,7 +753,7 @@
         var totalSets = day.exercises.reduce(function(a, e){ return a + e.sets.length; }, 0);
         right = '<div class="day-set-count">' + totalSets + ' SETS</div>';
       } else if (day.type === 'cardio') {
-        right = '<div class="day-set-count">30 MIN</div>';
+        right = '<div class="day-set-count">' + (num(day.cardio.min) || 0) + ' MIN</div>';
       }
       return '<div class="day-section">' +
         '<div class="day-header">' +
@@ -865,17 +883,25 @@
     }
 
     function renderCardio(day, accent) {
+      var c = day.cardio;
+      var last = lastCardioFor(day.id);
+      var lastText = last
+        ? 'LAST ' + shortDate(last.date) + ': ' + last.cardio.mph + ' MPH · ' + last.cardio.incline + '% · ' + last.cardio.min + ' MIN'
+        : '';
+      function input(field, mode) {
+        return '<input class="num-input" type="number" inputmode="' + mode + '" step="any" value="' + esc(c[field]) + '" ' +
+          'onfocus="this.style.borderColor=\'' + accent + '\';this.style.boxShadow=\'0 0 0 2px ' + accent + '22\'" ' +
+          'onblur="this.style.borderColor=\'#e0d9cc\';this.style.boxShadow=\'none\';app.refreshAfterEdit()" ' +
+          'oninput="app.updateCardio(\'' + day.id + '\',\'' + field + '\',this.value)">';
+      }
       return '<div class="ex-list">' +
         '<div class="card">' +
-          '<div class="ex-header"><div class="ex-name">Treadmill Incline Walking</div><div class="day-set-count">TOTAL 30 MIN</div></div>' +
-          CARDIO_BLOCKS.map(function(b) {
-            return '<div class="block-row">' +
-              '<div class="block-time" style="color:' + accent + '">' + b.min + ' MIN</div>' +
-              '<div><div class="block-name">' + esc(b.name) + '</div><div class="block-detail">' + esc(b.detail) + '</div></div>' +
-            '</div>';
-          }).join('') +
+          '<div class="ex-header"><div class="ex-name">Treadmill Incline Walking</div></div>' +
+          (lastText ? '<div class="rx-row"><span class="last" style="margin-left:0;text-align:left">' + esc(lastText) + '</span></div>' : '') +
+          '<div class="cardio-head"><div>SPEED (MPH)</div><div>INCLINE (%)</div><div>MINUTES</div></div>' +
+          '<div class="cardio-row">' + input('mph', 'decimal') + input('incline', 'decimal') + input('min', 'numeric') + '</div>' +
         '</div>' +
-        renderLogButton(day, accent, '✓ MARK CARDIO DONE') +
+        renderLogButton(day, accent, '✓ LOG CARDIO') +
       '</div>';
     }
 
