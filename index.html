@@ -117,12 +117,11 @@
     .done-chip { display: inline-block; font-size: 9px; letter-spacing: 1.5px; font-weight: 800; padding: 3px 8px; border-radius: 2px; background: #e6f5ec; color: #0e7c47; border: 1px solid #9ed4b3; }
 
     /* Plan tab */
-    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-    .week-cell { border: 1px solid #e0d9cc; border-radius: 2px; padding: 6px 2px; text-align: center; background: #faf7f2; }
-    .week-cell .d { font-size: 9px; font-weight: 900; letter-spacing: 1px; }
-    .week-cell .t { font-size: 7px; color: #888; margin-top: 2px; letter-spacing: 0.5px; }
-    .week-cell .c { font-size: 12px; margin-top: 3px; height: 14px; }
-    .week-cell.today { border-color: #d63b1f; }
+    .week-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .week-cell { border: 1px solid #e0d9cc; border-radius: 2px; padding: 8px 2px; text-align: center; background: #faf7f2; cursor: pointer; }
+    .week-cell .d { font-size: 9px; font-weight: 900; letter-spacing: 0.5px; white-space: nowrap; }
+    .week-cell .c { font-size: 9px; font-weight: 800; color: #0e7c47; margin-top: 4px; height: 12px; white-space: nowrap; }
+    .week-cell.next { border-color: #d63b1f; }
     .entry { border-top: 1px solid #ece7de; padding: 10px 0; font-size: 11px; color: #333; line-height: 1.5; }
     .entry:first-of-type { border-top: none; }
     .entry-head { display: flex; justify-content: space-between; align-items: center; font-weight: 900; letter-spacing: 1px; font-size: 11px; color: #111; margin-bottom: 4px; }
@@ -892,17 +891,20 @@
 
     function renderPlan() {
       var monday = mondayOf(new Date());
-      var todayIso = todayISO();
-      var weekCells = ['mon','tue','wed','thu','fri','sat','sun'].map(function(id, i) {
-        var d = findDay(id);
-        var date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
-        var iso = isoDate(date);
-        var done = loggedOn(id, iso);
+      // One cell per workout, ticked if it was logged any day this week (Mon-Sun),
+      // so it works whichever day you actually did it. The next workout is outlined.
+      var weekStart = isoDate(monday);
+      var weekEnd = isoDate(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6));
+      var upNext = nextDayId() || todayDayId();
+      var weekCells = STATE.data.days.map(function(d) {
+        var logs = STATE.data.history.filter(function(h) {
+          return h.dayId === d.id && h.date >= weekStart && h.date <= weekEnd;
+        });
+        var lastDate = logs.length ? logs[logs.length - 1].date : null;
         var c = TYPE_COLORS[d.type];
-        return '<div class="week-cell' + (iso === todayIso ? ' today' : '') + '" onclick="app.setActiveDay(\'' + id + '\')">' +
-          '<div class="d" style="color:' + c + '">' + d.tag + '</div>' +
-          '<div class="t">' + esc(d.label) + '</div>' +
-          '<div class="c">' + (done ? '✓' : '') + '</div>' +
+        return '<div class="week-cell' + (d.id === upNext ? ' next' : '') + '" onclick="app.setActiveDay(\'' + d.id + '\')">' +
+          '<div class="d" style="color:' + c + '">' + esc(tabLabel(d)) + '</div>' +
+          '<div class="c">' + (lastDate ? '✓ ' + shortDate(lastDate) : '') + '</div>' +
         '</div>';
       }).join('');
 
@@ -944,6 +946,7 @@
         '<div class="ex-list">' +
           '<div class="panel">' +
             '<div class="panel-label">THIS WEEK · 4 LIFT + 2 CARDIO + 1 RECOVERY</div>' +
+            '<div style="font-size:9px;color:#888;margin:-4px 0 10px">RED OUTLINE = UP NEXT</div>' +
             '<div class="week-grid">' + weekCells + '</div>' +
           '</div>' +
           '<div class="panel" id="week-form">' +
