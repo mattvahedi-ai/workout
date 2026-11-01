@@ -114,9 +114,6 @@
     .goal-bar { height: 6px; background: #ece7de; border-radius: 3px; overflow: hidden; }
     .goal-bar > div { height: 100%; border-radius: 3px; }
     .goal-set { font-size: 9px; letter-spacing: 1.5px; font-weight: 800; color: #999; }
-    .goal-big { font-size: 36px; font-weight: 900; letter-spacing: 1px; line-height: 1; }
-    .goal-line { margin-top: 12px; cursor: pointer; }
-    .goal-note { font-size: 10px; color: #888; line-height: 1.5; margin-top: 12px; }
     .cardio-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 8px 14px 14px; }
     .cardio-head { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 8px 14px 0; }
     .cardio-head div { font-size: 9px; color: #444; letter-spacing: 2px; text-align: center; font-weight: 800; }
@@ -190,8 +187,8 @@
       'Adjust estimated starting weights to your actual strength. Machine weights vary.',
     ];
 
-    // TROY GOALS — estimated working sets for a lean, athletic ~180 lb build.
-    // These are reasonable strength targets, not Brad Pitt's actual lifts.
+    // STRENGTH GOALS — estimated working sets a well-trained ~180 lb lifter should
+    // reach on each exercise. Editable in the app by tapping the goal line.
     // { w: weight (for bodyweight moves: added weight, 0 = bodyweight only), r: reps }
     var GOALS = {
       m1: { w: 70,  r: 10 },  // Incline DB Press (each)
@@ -355,7 +352,7 @@
       return null;
     }
 
-    // ---- Troy goal progress -------------------------------------------------
+    // ---- Strength goal progress ----------------------------------------------
     // Compares your best set's estimated 1-rep max (Epley) to the goal set's,
     // so 185×10 and 205×8 are compared fairly.
     function e1rm(load, reps) { return load * (1 + reps / 30); }
@@ -385,13 +382,6 @@
     function goalBar(pct) {
       return '<div class="goal-bar"><div style="width:' + Math.min(pct, 100) + '%;background:' + goalColor(pct) + '"></div></div>';
     }
-    // Average progress (each exercise capped at 100%) over a list of exercises
-    function averageGoal(exercises) {
-      var ps = exercises.map(goalProgress).filter(Boolean);
-      if (!ps.length) return null;
-      return Math.round(ps.reduce(function(a, p){ return a + p.capped; }, 0) / ps.length);
-    }
-
     function lastCardioFor(dayId) {
       var h = STATE.data.history;
       for (var i = h.length - 1; i >= 0; i--) {
@@ -601,8 +591,8 @@
         var e = findEx(dayId, exId);
         var g = e.goal || { w: '', r: e.hi };
         var wMsg = e.bw
-          ? 'Troy goal for ' + e.name + ':\nAdded weight in lb (0 = bodyweight only).\nLeave empty to remove the goal.'
-          : 'Troy goal for ' + e.name + ':\nWeight in lb' + (e.unit ? ' (' + e.unit.toLowerCase() + ')' : '') + '.\nLeave empty to remove the goal.';
+          ? 'Goal for ' + e.name + ':\nAdded weight in lb (0 = bodyweight only).\nLeave empty to remove the goal.'
+          : 'Goal for ' + e.name + ':\nWeight in lb' + (e.unit ? ' (' + e.unit.toLowerCase() + ')' : '') + '.\nLeave empty to remove the goal.';
         var w = prompt(wMsg, g.w);
         if (w === null) return;
         if (String(w).trim() === '') { e.goal = null; scheduleSave(); render(); return; }
@@ -929,10 +919,10 @@
       var goalSection = '<div class="goal-row" onclick="app.editGoal(\'' + dayId + '\',\'' + e.id + '\')">';
       if (gp) {
         var status = gp.pct >= 100 ? '✓ GOAL HIT' : gp.pct + '% · ' + (100 - gp.pct) + '% TO GO';
-        goalSection += '<div class="goal-top"><span>TROY GOAL: ' + esc(goalText(e)) + '</span>' +
+        goalSection += '<div class="goal-top"><span>GOAL: ' + esc(goalText(e)) + '</span>' +
           '<span class="pct" style="color:' + goalColor(gp.pct) + '">' + status + '</span></div>' + goalBar(gp.pct);
       } else {
-        goalSection += '<div class="goal-set">+ SET TROY GOAL</div>';
+        goalSection += '<div class="goal-set">+ SET GOAL</div>';
       }
       goalSection += '</div>';
 
@@ -1085,7 +1075,6 @@
             '<div style="font-size:9px;color:#888;margin:-4px 0 10px">RED OUTLINE = UP NEXT</div>' +
             '<div class="week-grid">' + weekCells + '</div>' +
           '</div>' +
-          renderGoalPanel() +
           '<div class="panel" id="week-form">' +
             '<div class="panel-label">WEEKLY PROGRESS TRACKER</div>' +
             '<div class="field-row">' +
@@ -1108,51 +1097,6 @@
           '</div>' +
           '<button class="secondary-btn wide-btn" onclick="app.resetPlan()">RESET WEIGHTS TO PLAN DEFAULTS</button>' +
         '</div>';
-    }
-
-    function renderGoalPanel() {
-      var lifts = STATE.data.days.filter(function(d){ return d.exercises; });
-      var all = lifts.reduce(function(a, d){ return a.concat(d.exercises.map(function(e){ return { e: e, d: d }; })); }, []);
-      var overall = averageGoal(all.map(function(x){ return x.e; }));
-      if (overall === null) return '';
-
-      var perDay = lifts.map(function(d) {
-        var pct = averageGoal(d.exercises);
-        if (pct === null) return '';
-        return '<div class="goal-line" onclick="app.setActiveDay(\'' + d.id + '\')">' +
-          '<div class="goal-top"><span>' + esc(tabLabel(d)) + '</span><span class="pct" style="color:' + goalColor(pct) + '">' + pct + '%</span></div>' +
-          goalBar(pct) + '</div>';
-      }).join('');
-
-      var behind = all
-        .map(function(x){ return { e: x.e, d: x.d, p: goalProgress(x.e) }; })
-        .filter(function(x){ return x.p && x.p.pct < 100; })
-        .sort(function(a, b){ return a.p.pct - b.p.pct; })
-        .slice(0, 3);
-      var behindHtml = behind.length
-        ? '<div class="panel-label" style="margin-top:16px;margin-bottom:0">FURTHEST BEHIND</div>' +
-          behind.map(function(x) {
-            return '<div class="goal-line" onclick="app.setActiveDay(\'' + x.d.id + '\')">' +
-              '<div class="goal-top"><span>' + esc(x.e.name.toUpperCase()) + ' → ' + esc(goalText(x.e)) + '</span>' +
-              '<span class="pct" style="color:' + goalColor(x.p.pct) + '">' + x.p.pct + '%</span></div>' +
-              goalBar(x.p.pct) + '</div>';
-          }).join('')
-        : '';
-
-      return '<div class="panel">' +
-        '<div class="panel-label">TROY GOAL PROGRESS</div>' +
-        '<div style="display:flex;align-items:baseline;gap:10px">' +
-          '<div class="goal-big" style="color:' + goalColor(overall) + '">' + overall + '%</div>' +
-          '<div style="font-size:10px;font-weight:800;letter-spacing:1px;color:#555">' +
-            (overall >= 100 ? 'ALL GOALS HIT' : (100 - overall) + '% TO GO') + '</div>' +
-        '</div>' +
-        '<div style="margin-top:8px">' + goalBar(overall) + '</div>' +
-        perDay + behindHtml +
-        '<div class="goal-note">Goals are estimated strength targets for a lean, athletic ~180 lb build — not Pitt\'s actual numbers. ' +
-          'Progress compares your best set to the goal using estimated 1-rep max, so heavier weight or more reps both count. ' +
-          'Bodyweight moves use your latest weigh-in (' + currentBodyWeight() + ' lb). Tap any goal on an exercise to change it. ' +
-          'The look itself also depends on body fat — track waist and weight below.</div>' +
-      '</div>';
     }
 
     function renderModal() {
