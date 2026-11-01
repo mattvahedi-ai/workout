@@ -44,7 +44,7 @@
     .header-btn { background: #111; color: #fff; border: none; border-radius: 2px; padding: 8px 12px; font-size: 10px; font-weight: 900; letter-spacing: 2px; white-space: nowrap; }
 
     /* Tabs */
-    .tabs { display: flex; gap: 6px; margin-top: 16px; overflow-x: auto; padding-bottom: 2px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; padding-top: 3px; }
     .tab { position: relative; border: 1px solid #d9d3c8; border-radius: 2px; padding: 6px 10px; font-size: 10px; font-weight: 900; letter-spacing: 2px; white-space: nowrap; background: transparent; color: #999; transition: all 0.15s; }
     .tab.active { color: #fff; }
     .tab .today-dot { position: absolute; top: -3px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: #d63b1f; border: 1px solid #f4f1ec; }
@@ -275,6 +275,12 @@
     }
     function fmtClock(sec) { return Math.floor(sec / 60) + ':' + pad2(sec % 60); }
     function num(v) { return isFinite(Number(v)) && v !== '' ? Number(v) : 0; }
+
+    // Workout name used for tabs/headers; repeated names get numbered (CARDIO 1, CARDIO 2)
+    function tabLabel(day) {
+      var same = STATE.data.days.filter(function(d){ return d.label === day.label; });
+      return same.length > 1 ? day.label + ' ' + (same.indexOf(day) + 1) : day.label;
+    }
 
     function findDay(dayId) { return STATE.data.days.find(function(d){ return d.id === dayId; }); }
     function findEx(dayId, exId) { return findDay(dayId).exercises.find(function(x){ return x.id === exId; }); }
@@ -525,7 +531,7 @@
       logSession: function(dayId) {
         var day = findDay(dayId);
         var date = todayISO();
-        var entry = { date: date, dayId: dayId, label: day.tag + ' · ' + day.label };
+        var entry = { date: date, dayId: dayId, label: tabLabel(day) };
         if (day.exercises) {
           entry.items = day.exercises.map(function(e) {
             return { exId: e.id, name: e.name, sets: clone(e.sets) };
@@ -702,7 +708,7 @@
         var c = TYPE_COLORS[d.type];
         var style = active ? 'background:' + c + ';color:#fff;border-color:' + c + ';' : '';
         return '<button class="tab' + (active ? ' active' : '') + '" style="' + style + '" onclick="app.setActiveDay(\'' + id + '\')">' +
-          esc(d.tag) + (id === today ? '<span class="today-dot"></span>' : '') + '</button>';
+          esc(tabLabel(d)) + (id === today ? '<span class="today-dot"></span>' : '') + '</button>';
       }).join('');
       var planActive = STATE.activeDay === 'plan';
       tabs += '<button class="tab' + (planActive ? ' active' : '') + '" style="' + (planActive ? 'background:#111;color:#fff;border-color:#111;' : '') + '" onclick="app.setActiveDay(\'plan\')">PLAN</button>';
@@ -734,8 +740,7 @@
       }
       return '<div class="day-section">' +
         '<div class="day-header">' +
-          '<div class="day-tag" style="color:' + accent + ';background:' + accent + '15;border-color:' + accent + '55;">' + esc(day.tag) + '</div>' +
-          '<div class="day-label">' + esc(day.label) + '</div>' +
+          '<div class="day-label">' + esc(tabLabel(day)) + '</div>' +
           '<div style="flex:1"></div>' + right +
         '</div>' +
         '<div class="day-focus">' + esc(day.focus) + '</div>' +
