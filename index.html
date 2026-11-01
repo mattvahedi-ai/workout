@@ -1019,8 +1019,9 @@
     // =========================================================================
     // INIT
     // =========================================================================
-    // Open on the most recently logged workout (latest date, then latest log time);
-    // fall back to today's scheduled workout if nothing has been logged yet.
+    // Open on the workout after the most recently logged one (latest date, then
+    // latest log time), following the plan order and wrapping CARDIO 2 -> UPPER A.
+    // Falls back to today's scheduled workout if nothing has been logged yet.
     function lastLoggedDayId() {
       var best = null;
       STATE.data.history.forEach(function(h, i) {
@@ -1032,7 +1033,14 @@
       });
       return best ? best.dayId : null;
     }
-    STATE.activeDay = lastLoggedDayId() || todayDayId();
+    function nextDayId() {
+      var last = lastLoggedDayId();
+      if (!last) return null;
+      var days = STATE.data.days;
+      var i = days.findIndex(function(d){ return d.id === last; });
+      return days[(i + 1) % days.length].id;
+    }
+    STATE.activeDay = nextDayId() || todayDayId();
     render();
   </script>
 </body>
