@@ -360,7 +360,7 @@
     // =========================================================================
     var STATE = {
       data: loadData() || clone(INITIAL_DATA),
-      activeDay: todayDayId(),
+      activeDay: null, // set at init: last workout logged
       editingName: null,
       adding: false,
       newExName: '',
@@ -531,7 +531,7 @@
       logSession: function(dayId) {
         var day = findDay(dayId);
         var date = todayISO();
-        var entry = { date: date, dayId: dayId, label: tabLabel(day) };
+        var entry = { date: date, at: Date.now(), dayId: dayId, label: tabLabel(day) };
         if (day.exercises) {
           entry.items = day.exercises.map(function(e) {
             return { exId: e.id, name: e.name, sets: clone(e.sets) };
@@ -1019,6 +1019,20 @@
     // =========================================================================
     // INIT
     // =========================================================================
+    // Open on the most recently logged workout (latest date, then latest log time);
+    // fall back to today's scheduled workout if nothing has been logged yet.
+    function lastLoggedDayId() {
+      var best = null;
+      STATE.data.history.forEach(function(h, i) {
+        var key = [h.date, h.at || 0, i];
+        if (!findDay(h.dayId)) return;
+        if (!best || key[0] > best.key[0] || (key[0] === best.key[0] && (key[1] > best.key[1] || (key[1] === best.key[1] && key[2] > best.key[2])))) {
+          best = { key: key, dayId: h.dayId };
+        }
+      });
+      return best ? best.dayId : null;
+    }
+    STATE.activeDay = lastLoggedDayId() || todayDayId();
     render();
   </script>
 </body>
