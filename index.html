@@ -378,8 +378,10 @@
     }
 
     // ---- Strength goal progress ----------------------------------------------
-    // Compares your best set's estimated 1-rep max (Epley) to the goal set's,
-    // so 185×10 and 205×8 are compared fairly.
+    // Averages every logged set's estimated 1-rep max (Epley) against the goal
+    // set's, so 185×10 and 205×8 are compared fairly. The goal counts as hit
+    // only when that average reaches the goal — one set (including set 1) is
+    // not enough. Sets that aren't filled in yet are left out of the average.
     function e1rm(load, reps) { return load * (1 + reps / 30); }
     function currentBodyWeight() {
       var w = STATE.data.weeks.find(function(x){ return num(x.bodyWeight) > 0; }); // weeks are newest-first
@@ -393,18 +395,33 @@
       return Math.round(g.bwx * currentBodyWeight() / inc) * inc;
     }
     function loadOf(e, w) { return (e.bw ? currentBodyWeight() : 0) + num(w); }
+    // Reps make a set real. A blank weight on a loaded lift is still being
+    // entered, so it must not count as a zero and pull the average down.
+    function setLogged(e, s) {
+      if (num(s.r) <= 0) return false;
+      if (!e.bw && (s.w === '' || s.w == null)) return false;
+      return true;
+    }
     function goalProgress(e) {
       if (!e.goal) return null;
-      var goalE = e1rm(loadOf(e, goalWeight(e)), num(e.goal.r));
-      if (goalE <= 0) return null;
+      var gw = goalWeight(e);
+      var goalReps = num(e.goal.r);
+      var goalE = e1rm(loadOf(e, gw), goalReps);
+      if (goalE <= 0 || goalReps <= 0) return null;
       // Bodyweight-only goals (e.g. 10 pull-ups) are measured by reps: 6 of 10 = 60%.
-      var repsOnly = e.bw && goalWeight(e) === 0;
-      var ratio = Math.max.apply(null, [0].concat(e.sets.map(function(s) {
-        if (num(s.r) <= 0) return 0;
-        if (repsOnly && num(s.w) === 0) return num(s.r) / num(e.goal.r);
-        return e1rm(loadOf(e, s.w), num(s.r)) / goalE;
-      })));
-      var pct = Math.round(ratio * 100);
+      var repsOnly = e.bw && gw === 0;
+      var sum = 0, n = 0, sets = e.sets || [];
+      for (var i = 0; i < sets.length; i++) {
+        var s = sets[i];
+        if (!setLogged(e, s)) continue;
+        var ratio = (repsOnly && num(s.w) === 0)
+          ? num(s.r) / goalReps
+          : e1rm(loadOf(e, s.w), num(s.r)) / goalE;
+        if (!isFinite(ratio)) continue;
+        sum += ratio;
+        n++;
+      }
+      var pct = n ? Math.round((sum / n) * 100) : 0;
       return { pct: pct, capped: Math.min(pct, 100) };
     }
     function goalColor(pct) {
